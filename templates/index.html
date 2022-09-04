@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手寫輸入法</title>
+    <style>
+        body{
+            background-color: black;
+        }
+        .text{
+            font-size: 30px;
+        }
+        #canvas{
+            background-color: gray;
+            padding-bottom: 5px;
+            padding-top: 5px;
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+        button{
+            background-color: gray;
+            border-radius: 10px;
+        }
+        #create_dataset{
+            position: absolute;
+            top: 0px;
+            right: 0px;
+        }
+        #info{
+            position: absolute;
+            top: 50px;
+            right: 0px;
+        }
+        #result{
+            font-size: 32px;
+            color: white;
+        }
+        .swal-title{
+            font-size: 32px;
+        }
+        .swal-text{
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body class="text">
+    <canvas id="canvas" width="350" height="350"></canvas><br>
+    <button id="spaceButton" class="text" type="button">Space</button>
+    <button id="deleteButton" class="text" type="button">Delete</button>
+    <a href="{{ url_for('add') }}">
+        <button id="create_dataset" class="text" type="button">Create Dataset</button>
+    </a>
+    <button id="info" class="text" type="button">Info</button>
+    <button id="clearButton" class="text" type="button">Clear Context</button>
+    <br><p id="result">Result: </p>
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <script type=text/javascript>
+        var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+    </script>
+    <script>
+        let alert_title = "使用說明";
+        let alert_context = `
+        1. 在框中寫下單一英文字母或數字。
+
+        2. 寫好後，1秒後即自動辨認，結果顯示於Result。
+
+        3. Space添加空白格，Delete刪除結果末字元，Clear Context刪除所有結果。
+        
+        *點選右上的Create Dataset可進入創建手寫資料頁面*`;
+        function info(){
+            swal({
+                title: alert_title, 
+                text: alert_context, 
+                type: "warning", 
+            })
+        };
+        info();
+        $("#info").click(function(){
+            info(); 
+        })
+
+        var D = 350;
+        (function(){
+        var canvas = document.querySelector("#canvas");
+        var context = canvas.getContext("2d");
+        var Mouse = {x: 0, y: 0};
+        var lastMouse = {x: 0, y: 0};
+        context.fillStyle = "black";
+        canvas.width = D;
+        canvas.height = D;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.color = "white";
+        context.lineWidth = 15;
+        context.lineJoin = context.lineCap = "round";
+        clearCanvas();
+
+        let url = canvas.toDataURL();
+
+        canvas.addEventListener("mousemove", function(e){
+            lastMouse.x = Mouse.x;
+            lastMouse.y = Mouse.y;
+            Mouse.x = e.pageX - this.offsetLeft;
+            Mouse.y = e.pageY - this.offsetTop;
+        }, false);
+        canvas.addEventListener("mousedown", function(){
+            canvas.addEventListener("mousemove", onDraw, false);
+        }, false);
+        canvas.addEventListener("mouseup", function(){
+            canvas.removeEventListener("mousemove", onDraw, false);
+            var predictClock = setTimeout(function(){
+                predict();
+                clearCanvas();
+            }, 1000);
+            canvas.addEventListener("mousedown", function(){
+                clearTimeout(predictClock);
+            }, false);
+        }, false);
+        function clearCanvas(){
+            context.clearRect(0, 0, D, D);
+            context.fillStyle = "black";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+        };
+        function onDraw(){
+            context.lineWidth = context.lineWidth;
+            context.lineJoin = "round";
+            context.lineCap = "round";
+            context.strokeStyle = context.color;
+            context.beginPath();
+            context.moveTo(lastMouse.x, lastMouse.y);
+            context.lineTo(Mouse.x, Mouse.y);
+            context.closePath();
+            context.stroke();
+        };
+        function predict(){
+            var img = canvas.toDataURL();
+            $.ajax({
+                type: "POST", 
+                url: $SCRIPT_ROOT + "/predict/", 
+                data: img, 
+                success: function(data){
+                    $("#result").append(data);
+                }
+            });
+        };
+        })();
+    </script>
+    <script>
+        $("#spaceButton").click(function(){
+            var res = document.querySelector("#result");
+            res.innerHTML = res.innerHTML + "&nbsp";
+        });
+        $("#deleteButton").click(function(){
+            var res = document.querySelector("#result");
+            if (res.innerHTML == "Result: "){
+                return
+            } else {
+                res.innerHTML = res.innerHTML.slice(0, -1);
+            }
+        });
+        $("#clearButton").click(function(){
+            var res = document.querySelector("#result");
+            res.innerHTML = "Result: ";
+        });
+    </script>
+</body>
+</html>
