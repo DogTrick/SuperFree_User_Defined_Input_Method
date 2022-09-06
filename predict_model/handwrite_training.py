@@ -91,7 +91,7 @@ model.compile(loss = "categorical_crossentropy",
 
 # model.summary()
 
-epochs = 6
+epochs = 5
 checkpoint_cb = keras.callbacks.ModelCheckpoint("handwrite_keras_model.h5")
 history = model.fit(X_train_np, y_train_oh, epochs = epochs, validation_data = (X_valid_np, y_valid_oh), callbacks = [checkpoint_cb])
 
