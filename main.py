@@ -24,6 +24,7 @@ def index():
 @app.route("/predict/", methods = ["GET", "POST"])
 def predict():
     def convert_img(imgdata):
+        imgstr = json.loads(imgdata)["img"]
         imgstr = re.search(r"base64,(.*)", str(imgdata)).group(1)
         with open("./data/temp_img/output.png", "wb") as output:
             output.write(base64.b64decode(imgstr))
@@ -107,7 +108,7 @@ def predict():
     y = model.predict(x)
     label = oh_tfr.inverse_transform(y).reshape([len(y), ])
     label = pd.Series(label).map(lb_map)[0]  
-    return str(label)
+    return json.dumps({"data": str(label)})
 
 @app.route("/add/")
 def add():

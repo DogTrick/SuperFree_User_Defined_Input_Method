@@ -57,9 +57,6 @@
     <br><p id="result">Result: </p>
     <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
-    <script type=text/javascript>
-        var $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-    </script>
     <script>
         let alert_title = "使用說明";
         let alert_context = `
@@ -97,8 +94,6 @@
         context.lineJoin = context.lineCap = "round";
         clearCanvas();
 
-        let url = canvas.toDataURL();
-
         canvas.addEventListener("mousemove", function(e){
             lastMouse.x = Mouse.x;
             lastMouse.y = Mouse.y;
@@ -135,15 +130,15 @@
             context.stroke();
         };
         function predict(){
-            var img = canvas.toDataURL();
-            $.ajax({
-                type: "POST", 
-                url: $SCRIPT_ROOT + "/predict/", 
-                data: img, 
-                success: function(data){
-                    $("#result").append(data);
-                }
-            });
+            let img = canvas.toDataURL();
+            fetch("/predict/", {
+                method: "post", 
+                body: JSON.stringify({ img })
+            })
+            .then(response => response.json())
+            .then(response => {
+                document.querySelector("#result").append(response.data);
+            })
         };
         })();
     </script>
